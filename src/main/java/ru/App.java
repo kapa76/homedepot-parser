@@ -1,0 +1,24 @@
+package ru;
+
+import ru.homedepot.Common.SiteLoader;
+
+import java.io.IOException;
+
+public class App {
+
+    private SiteLoader siteLoader = new SiteLoader();
+
+    public App() {
+    }
+
+    public void load(){
+        siteLoader.Start();
+    }
+
+    public static void main(String[] args) throws IOException {
+        App app = new App();
+        app.load();
+    }
+
+
+}
