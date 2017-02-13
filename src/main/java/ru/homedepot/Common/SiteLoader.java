@@ -81,10 +81,12 @@ public class SiteLoader {
     }
 
     private Map<String, Item> parseItem(Link link) {
-        String body = PageLoader.Loader(link.getLinkUrl());
-        Document doc = Jsoup.parse(body);
-
         Map<String, Item> mItems = new HashMap<>();
+        String body = PageLoader.Loader(link.getLinkUrl());
+        if(body.length() == 0)
+            return mItems;
+
+        Document doc = Jsoup.parse(body);
         try {
             if (doc.select("div.col__8-12.col__8-12--xs.col__9-12--sm.col__10-12--md.pod-group__wrapper").size() > 0) {
                 Elements items = doc.select("div.col__8-12.col__8-12--xs.col__9-12--sm.col__10-12--md.pod-group__wrapper").first()
@@ -106,7 +108,7 @@ public class SiteLoader {
 
             }
         } catch (Exception e) {
-            String a = "";
+            System.out.println("Link: " + link.getLinkUrl() + ",Exception: " + e.getMessage());
         }
         if (mItems.size() == 0) {
             List<Link> ll1 = parseItemGroup(link);
@@ -143,7 +145,7 @@ public class SiteLoader {
         Map<String, Item> mItems = new HashMap<>();
 
         for (int i = 0; i < items.size(); i++) {
-            String imageUrl = items.get(i).select("div.plp-pod__image").select("a").select("img").first().attr("src");
+            String imageUrl = PREFIX_PAGE + items.get(i).select("div.plp-pod__image").select("a").select("img").first().attr("src");
             String description = items.get(i).select("div.pod-plp__description").select("a").html();
             String modelName = items.get(i).select("div.pod-plp__model").html();
             String rating = items.get(i).select("div.pod-plp__ratings").select("a").first().select("span").attr("rel");
@@ -156,10 +158,12 @@ public class SiteLoader {
     }
 
     private List<Link> parseItemGroup(Link item) {
+        List<Link> arr = new ArrayList<>();
         String body = PageLoader.Loader(item.getLinkUrl());
+        if(body.length() == 0)
+            return arr;
         Document doc = Jsoup.parse(body);
         Elements elems = doc.select("div.col__4-12.col__4-12--xs.col__4-12--sm.col__4-12--md.col__4-12--lg.col__4-12--xl");
-        List<Link> arr = new ArrayList<>();
         for (int i = 0; i < elems.size(); i++) {
             String url = PREFIX_PAGE + elems.get(i).select("div.content_image").select("a").attr("href");
             String name = elems.get(i).select("div.content").select("p").html();
@@ -177,10 +181,13 @@ public class SiteLoader {
     }
 
     private List<Link> parseFirstData(Link link) {
+        List<Link> arr = new ArrayList<>();
         String body = PageLoader.Loader(link.getLinkUrl());
+        if(body.length() == 0)
+            return arr;
+
         Document doc = Jsoup.parse(body);
         Elements elems = doc.select("div.col__4-12.col__4-12--xs.col__4-12--sm.col__4-12--md.col__4-12--lg.col__4-12--xl.pad");
-        List<Link> arr = new ArrayList<>();
         for (int i = 0; i < elems.size(); i++) {
 
             try {
@@ -211,12 +218,15 @@ public class SiteLoader {
     }
 
     private List<Link> loadSecondLevelItems(Link link) {
+        List<Link> secondLevel = new ArrayList<>();
         String body = PageLoader.Loader(link.getLinkUrl());
+        if(body.length() == 0)
+            return secondLevel;
+
         Document doc = Jsoup.parse(body);
         Elements sections = doc.select("div.col__2-12.col__2-12--xs.col__2-12--sm.col__2-12--md.col__2-12--lg.col__2-12--xl.col__rail--lg")
                 .first().select("div.col__12-12.col__12-12--xs.col__12-12--sm.col__12-12--md.col__12-12--lg.col__12-12--xl.pad");
 
-        List<Link> secondLevel = new ArrayList<>();
         for (int i = 0; i < sections.size(); i++) {
             Elements li = sections.get(i).select("li");
             if (li.size() > 0) {
@@ -240,12 +250,16 @@ public class SiteLoader {
     }
 
     private List<Link> buildFirstLevelLinks() {
-        Document doc = Jsoup.parse(loadFirstPage());
+        List<Link> firstLevelMenu = new ArrayList<>();
+        String body = loadFirstPage();
+        if(body.length() == 0)
+            return firstLevelMenu;
+
+        Document doc = Jsoup.parse(body);
 
         Elements sections = doc.select("div.MainFlyout").select("section");
         Elements menuItem = sections.get(0).select("div.MainFlyout__level1Wrapper").select("ul").select("li");
 
-        List<Link> firstLevelMenu = new ArrayList<>();
         for (int i = 0; i < menuItem.size(); i++) {
             Element el = menuItem.get(i);
             String linkUrl = el.select("a").attr("href");
@@ -268,7 +282,7 @@ public class SiteLoader {
             fw = new FileWriter(newTextFile);
             for (String key : allShopItems.keySet()) {
                 Item item = allShopItems.get(key);
-                fw.write(item.toString());
+                fw.write(item.toString() + "\n");
             }
             fw.close();
         } catch (IOException iox) {

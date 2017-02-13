@@ -50,7 +50,7 @@ public class PageLoader {
                 body = EntityUtils.toString(response.getEntity(), "UTF-8");
             }
         } catch (IOException exception) {
-            System.out.println("PageLoader: can't load page: " + exception.getMessage());
+            System.out.println("Exception PageLoader: can't load page: " + exception.getMessage());
         }
 
         return body;

@@ -17,6 +17,7 @@ public class App {
     }
 
     public static void main(String[] args) throws IOException {
+        System.out.println("Start loader...");
         App app = new App();
         app.load();
     }
