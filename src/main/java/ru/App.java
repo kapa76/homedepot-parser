@@ -13,6 +13,7 @@ public class App {
 
     public void load(){
         siteLoader.Start();
+        siteLoader.saveToFile("items.csv");
     }
 
     public static void main(String[] args) throws IOException {
