@@ -16,7 +16,7 @@ public class Item {
         this.description = description;
         this.modelName = modelName;
         this.rating = rating;
-        this.priceSpecial = priceSpecial.replace("\\n","");
+        this.priceSpecial = priceSpecial.replace("\n"," ");
         this.price = price.substring(0, price.length()-2);
     }
 
