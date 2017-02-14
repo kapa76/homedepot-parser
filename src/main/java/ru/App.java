@@ -1,26 +1,27 @@
 package ru;
 
-import ru.homedepot.Common.SiteLoader;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import ru.homedepot.common.SiteLoader;
 
-import java.io.IOException;
-
+@SpringBootApplication
+@Configuration
+@EnableAutoConfiguration
+@ComponentScan
+@Profile("test")
 public class App {
 
-    private SiteLoader siteLoader = new SiteLoader();
+    public static void main(String[] args) throws InterruptedException {
+        SpringApplication.run(App.class, args);
 
-    public App() {
+        SiteLoader parser = new SiteLoader();
+        parser.init();
+        parser.saveToFile("items.csv");
+
     }
-
-    public void load(){
-        siteLoader.Start();
-        siteLoader.saveToFile("items.csv");
-    }
-
-    public static void main(String[] args) throws IOException {
-        System.out.println("Start loader...");
-        App app = new App();
-        app.load();
-    }
-
 
 }

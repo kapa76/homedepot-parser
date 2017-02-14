@@ -1,4 +1,4 @@
-package ru.homedepot.Entity;
+package ru.homedepot.entity;
 
 public class Link {
 

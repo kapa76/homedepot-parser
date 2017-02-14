@@ -1,28 +1,36 @@
-package ru.homedepot.Common;
+package ru.homedepot.common;
 
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import ru.homedepot.Entity.Item;
-import ru.homedepot.Entity.Link;
+import org.springframework.stereotype.Service;
+import ru.homedepot.entity.Item;
+import ru.homedepot.entity.Link;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
+@Service
 public class SiteLoader {
+
+    protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private final String FIRST_PAGE = "http://www.homedepot.com/";
     private final String PREFIX_PAGE = "http://www.homedepot.com";
-
+    private static final int LIMIT = 1000;
     private Map<String, Item> allShopItems = new HashMap<>();
 
     private Set<String> queueCancelled = new HashSet<>();
 
-    public void Start() {
+    public void init() {
+        long startTime = System.currentTimeMillis();
+
         List<Link> firstLevelMenu = buildFirstLevelLinks();
         addQueueCancelled(firstLevelMenu);
 
@@ -33,17 +41,36 @@ public class SiteLoader {
                     // пропускаем первую линку
                     Map<String, Item> parsedItems = loadDataBySecondLink(secondLink);
                     mergeItems(parsedItems);
+
                 }
             }
+
             addQueueCancelled(secondLevel);
         }
-        printItems();
+        //printItems();
+        long endTime = System.currentTimeMillis();
+
+        printStatistics(endTime - startTime);
+    }
+
+    private void printStatistics(long time) {
+        logger.debug("Times: " + time + ", msec");
+        logger.debug("Items loaded: " + allShopItems.size());
+        logger.debug("Bytes load: " + PageLoader.getBytesTransferred() + ", bytes");
+        logger.debug("Request count: " + PageLoader.getRequestPageLoader());
+        logger.debug("Min exec time: " + Collections.min(PageLoader.getRequestTimeExec()) + ", msec");
+        logger.debug("Max exec time: " + Collections.max(PageLoader.getRequestTimeExec()) + ", msec");
+        long summary = 0;
+        for (Long t : PageLoader.getRequestTimeExec()) {
+            summary += t;
+        }
+        logger.debug("Avg exec time: " + (summary / PageLoader.getRequestTimeExec().size()) + ", msec");
     }
 
     private void printItems() {
         for (String key : allShopItems.keySet()) {
             Item item = allShopItems.get(key);
-            System.out.println(item.toString());
+            logger.debug(item.toString());
         }
     }
 
@@ -60,12 +87,12 @@ public class SiteLoader {
 
         for (Link item : ll1) {
             //если у нас еще не товары а все какие-то группы
-            System.out.println("Link parse data: " + item.getLinkUrl());
+            logger.debug("Link parse data: " + item.getLinkUrl());
             List<Link> ll2 = parseItemGroup(item);
 
             for (Link linkItem : ll2) {
                 if (!queueCancelled.contains(linkItem.getLinkUrl())) {
-                    System.out.println("Link pars item group: " + linkItem.getLinkUrl());
+                    logger.debug("Link pars item group: " + linkItem.getLinkUrl());
                     parsedItems.putAll(parseItem(linkItem));
                 }
             }
@@ -82,8 +109,13 @@ public class SiteLoader {
 
     private Map<String, Item> parseItem(Link link) {
         Map<String, Item> mItems = new HashMap<>();
+
+        if (PageLoader.getRequestPageLoader() >= LIMIT) {
+            return mItems;
+        }
+
         String body = PageLoader.Loader(link.getLinkUrl());
-        if(body.length() == 0)
+        if (body.length() == 0)
             return mItems;
 
         Document doc = Jsoup.parse(body);
@@ -108,19 +140,19 @@ public class SiteLoader {
 
             }
         } catch (Exception e) {
-            System.out.println("Link: " + link.getLinkUrl() + ",Exception: " + e.getMessage());
+            logger.debug("Link: " + link.getLinkUrl() + ",Exception: " + e.getMessage());
         }
         if (mItems.size() == 0) {
             List<Link> ll1 = parseItemGroup(link);
             for (Link linkItem : ll1) {
                 if (!queueCancelled.contains(linkItem.getLinkUrl())) {
-                    System.out.println("Link pars item group: " + linkItem.getLinkUrl());
+                    logger.debug("Link pars item group: " + linkItem.getLinkUrl());
                     allShopItems.putAll(parseItem(linkItem));
                 }
             }
         }
 
-        System.out.println("Loaded Items: " + mItems.size());
+        logger.debug("Loaded Items: " + mItems.size());
         return mItems;
     }
 
@@ -145,9 +177,9 @@ public class SiteLoader {
         Map<String, Item> mItems = new HashMap<>();
 
         for (int i = 0; i < items.size(); i++) {
-            String imageUrl = PREFIX_PAGE + items.get(i).select("div.plp-pod__image").select("a").select("img").first().attr("src");
-            String description = items.get(i).select("div.pod-plp__description").select("a").html();
-            String modelName = items.get(i).select("div.pod-plp__model").html();
+            String imageUrl = items.get(i).select("div.plp-pod__image").select("a").select("img").first().attr("src");
+            String description = items.get(i).select("div.pod-plp__description").select("a").text();
+            String modelName = items.get(i).select("div.pod-plp__model").text();
             String rating = items.get(i).select("div.pod-plp__ratings").select("a").first().select("span").attr("rel");
             String priceSpecial = items.get(i).select("div.price__special").select("span").html();
             String price = items.get(i).select("div.price").text();
@@ -159,8 +191,13 @@ public class SiteLoader {
 
     private List<Link> parseItemGroup(Link item) {
         List<Link> arr = new ArrayList<>();
+
+        if (PageLoader.getRequestPageLoader() >= LIMIT) {
+            return arr;
+        }
+
         String body = PageLoader.Loader(item.getLinkUrl());
-        if(body.length() == 0)
+        if (body.length() == 0)
             return arr;
         Document doc = Jsoup.parse(body);
         Elements elems = doc.select("div.col__4-12.col__4-12--xs.col__4-12--sm.col__4-12--md.col__4-12--lg.col__4-12--xl");
@@ -175,15 +212,20 @@ public class SiteLoader {
                 allShopItems.putAll(parseItem(item));
             }
         } else {
-            System.out.println("Loaded parseItemGroup: " + arr.size());
+            logger.debug("Loaded parseItemGroup: " + arr.size());
         }
         return arr;
     }
 
     private List<Link> parseFirstData(Link link) {
         List<Link> arr = new ArrayList<>();
+
+        if (PageLoader.getRequestPageLoader() >= LIMIT) {
+            return arr;
+        }
+
         String body = PageLoader.Loader(link.getLinkUrl());
-        if(body.length() == 0)
+        if (body.length() == 0)
             return arr;
 
         Document doc = Jsoup.parse(body);
@@ -204,7 +246,7 @@ public class SiteLoader {
                 }
                 arr.add(l);
             } catch (Exception e) {
-                System.out.println("Exception url: " + link.getLinkUrl());
+                logger.debug("Exception url: " + link.getLinkUrl());
             }
         }
         if (arr.size() == 0) {
@@ -212,15 +254,19 @@ public class SiteLoader {
                 allShopItems.putAll(parseItem(link));
             }
         } else {
-            System.out.println("Loaded parseFirstData: " + arr.size());
+            logger.debug("Loaded parseFirstData: " + arr.size());
         }
         return arr;
     }
 
     private List<Link> loadSecondLevelItems(Link link) {
         List<Link> secondLevel = new ArrayList<>();
+        if (PageLoader.getRequestPageLoader() >= LIMIT) {
+            return secondLevel;
+        }
+
         String body = PageLoader.Loader(link.getLinkUrl());
-        if(body.length() == 0)
+        if (body.length() == 0)
             return secondLevel;
 
         Document doc = Jsoup.parse(body);
@@ -245,14 +291,14 @@ public class SiteLoader {
                 secondLevel.add(lnk);
             }
         }
-        System.out.println("Loaded second level options: " + secondLevel.size());
+        logger.debug("Loaded second level options: " + secondLevel.size());
         return secondLevel;
     }
 
     private List<Link> buildFirstLevelLinks() {
         List<Link> firstLevelMenu = new ArrayList<>();
         String body = loadFirstPage();
-        if(body.length() == 0)
+        if (body.length() == 0)
             return firstLevelMenu;
 
         Document doc = Jsoup.parse(body);
@@ -267,7 +313,7 @@ public class SiteLoader {
             Link linkItem = new Link(linkUrl, linkName);
             firstLevelMenu.add(linkItem);
         }
-        System.out.println("Loaded first level options: " + firstLevelMenu.size());
+        logger.debug("Loaded first level options: " + firstLevelMenu.size());
         return firstLevelMenu;
     }
 

@@ -1,4 +1,4 @@
-package ru.homedepot.Entity;
+package ru.homedepot.entity;
 
 public class Item {
     private String imageUrl;
@@ -9,12 +9,15 @@ public class Item {
     private String price;
 
     public Item(String imageUrl, String description, String modelName, String rating, String priceSpecial, String price) {
+        if(!imageUrl.contains("http")) {
+            imageUrl = "http://www.homedepot.com" + imageUrl;
+        }
         this.imageUrl = imageUrl;
         this.description = description;
         this.modelName = modelName;
         this.rating = rating;
-        this.priceSpecial = priceSpecial;
-        this.price = price;
+        this.priceSpecial = priceSpecial.replace("\\n","");
+        this.price = price.substring(0, price.length()-2);
     }
 
     public String getKey() {
